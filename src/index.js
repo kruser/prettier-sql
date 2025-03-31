@@ -24,11 +24,11 @@ function printSql(path, options) {
 
     // Define SQL keywords for formatting
     let keywords = [
-      'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN',
+      'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 
       'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'FULL JOIN',
       'LIMIT', 'OFFSET', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM',
       'CREATE TABLE', 'ALTER TABLE', 'DROP TABLE', 'TRUNCATE', 'WITH',
-      'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'ON', 'AND', 'OR',
+      'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'AND', 'OR',
       'IN', 'NOT IN', 'EXISTS', 'NOT EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
     ];
 
@@ -38,29 +38,39 @@ function printSql(path, options) {
     // Handle keyword case
     if (keywordsCase === 'uppercase' || keywordsCase === 'lowercase') {
       // Create a regex pattern for all keywords with word boundaries
-      const keywordPattern = keywords.map(k =>
+      const keywordPattern = keywords.map(k => 
         // Escape any regex special characters in the keyword
         k.replace(/[-\/\^\$*+?.()|[\]{}]/g, '\\$&')
       ).join('|');
       const keywordRegex = new RegExp(`\\b(${keywordPattern})\\b`, 'gi');
-
+      
       // Replace keywords with proper case
-      sql = sql.replace(keywordRegex, match =>
+      sql = sql.replace(keywordRegex, match => 
         keywordsCase === 'uppercase' ? match.toUpperCase() : match.toLowerCase()
       );
     }
 
+    // Add newlines before main SQL clauses
+    keywords.forEach(keyword => {
+      // Create regex that matches the keyword at word boundaries
+      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+      // Single space after keywords, not double
+      sql = sql.replace(regex, `\n${keywordsCase === 'uppercase' ? keyword.toUpperCase() : 
+                                    keywordsCase === 'lowercase' ? keyword.toLowerCase() : 
+                                    keyword}`);
+    });
+
     // Replace AS keywords and align them
     // First standardize spacing around AS
     sql = sql.replace(/\s+AS\s+/gi, ' AS ');
-
+    
     // Find the position of the AS keywords to align them
     const asPositions = [];
     const asMatches = sql.match(/\S+\s+AS\s+\S+/g) || [];
-
+    
     if (asMatches.length > 0) {
       let maxAsPosition = 0;
-
+      
       // Find the furthest position of the AS keyword
       asMatches.forEach(match => {
         const asPosition = match.indexOf(' AS ');
@@ -68,7 +78,7 @@ function printSql(path, options) {
           maxAsPosition = asPosition;
         }
       });
-
+      
       // Now pad all AS keywords to align them
       if (maxAsPosition > 0) {
         const asRegex = /(\S+)(\s+AS\s+)(\S+)/g;
@@ -79,23 +89,62 @@ function printSql(path, options) {
       }
     }
 
-    // Add newlines before main SQL clauses
-    keywords.forEach(keyword => {
-      // Create regex that matches the keyword at word boundaries
-      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-      // Single space after keywords, not double
-      sql = sql.replace(regex, `\n${keywordsCase === 'uppercase' ? keyword.toUpperCase() :
-                                    keywordsCase === 'lowercase' ? keyword.toLowerCase() :
-                                    keyword}`);
-    });
+    // Handle WITH clauses and CTEs
+    sql = sql.replace(/\n(WITH\s+[^(]+)\s+AS\s*\(/g, '$1 AS (');
+
+    // Add 4 spaces of indentation to SQL within CTEs
+    sql = sql.replace(/\((\n+)(\s*)SELECT/g, '(\n    SELECT');
+
+    // Indent all clauses inside CTEs
+    let inCTE = false;
+    const lines = sql.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Check if we're starting a CTE
+      if (line.match(/^\w+\s+AS\s*\($/)) {
+        inCTE = true;
+        continue;
+      }
+
+      // Check if we're ending a CTE
+      if (line === ')' || line === '),') {
+        inCTE = false;
+        continue;
+      }
+
+      // If inside a CTE, add 4 spaces of indentation to all lines
+      if (inCTE && !line.match(/^\s*SELECT/i) && !line.match(/^\s*FROM/i) &&
+          !line.match(/^\s*WHERE/i) && !line.match(/^\s*ORDER BY/i) &&
+          !line.match(/^\s*GROUP BY/i) && !line.match(/^\s*HAVING/i) && 
+          !line.match(/^\s*JOIN/i) && !line.match(/^\s*AND/i) && 
+          !line.match(/^\s*OR/i) && !line.match(/^$/)) {
+        lines[i] = '    ' + lines[i];
+      } else if (inCTE && line.match(/^\s*(FROM|WHERE|ORDER BY|GROUP BY|HAVING|JOIN|AND|OR)/i)) {
+        // These keywords should be indented in CTEs
+        lines[i] = '    ' + lines[i];
+      }
+    }
+    sql = lines.join('\n');
 
     // Handle comma position (end or start of line)
     if (commaPosition === 'start') {
       // Line up commas under the first letter of SELECT
       sql = sql.replace(/,\s*/g, '\n     , ');
+      
+      // Adjust commas in GROUP BY sections
+      sql = sql.replace(/\n(GROUP BY.*?)(?=\n[A-Z]|$)/gs, (match) => {
+        return match.replace(/\n\s+,\s+/g, '\n       , ');
+      });
     } else {
       sql = sql.replace(/,\s*/g, ',\n');
     }
+
+    // Close parentheses on separate lines
+    sql = sql.replace(/\)(,?)(\s*?)/g, '\n)$1');
+
+    // Handle JOIN ... ON statements - keep ON on same line
+    sql = sql.replace(/\n(ON\b)/gi, ' $1');
 
     // Handle semicolon - place on its own line
     sql = sql.replace(/;/g, '\n;');
@@ -103,9 +152,15 @@ function printSql(path, options) {
     // Special handling for AND/OR to indent them
     sql = sql.replace(/\n(AND|OR)\b/gi, '\n  $1');
 
+    // Remove extra blank lines
+    sql = sql.replace(/\n\s*\n+/g, '\n');
+
+    // Remove trailing whitespace from each line
+    sql = sql.split('\n').map(line => line.trimRight()).join('\n');
+
     return sql.trim();
   }
-
+  
   return '';
 }
 
@@ -121,7 +176,7 @@ module.exports = {
       extensions: ['.sql']
     }
   },
-
+  
   // Language printers
   printers: {
     sql: {
