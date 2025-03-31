@@ -4,5 +4,5 @@
   "semi": true,
   "singleQuote": true,
   "sqlKeywordsCase": "uppercase",
-  "sqlCommaPosition": "end"
+  "sqlCommaPosition": "start"
 }

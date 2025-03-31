@@ -28,7 +28,7 @@ function printSql(path, options) {
       'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'FULL JOIN',
       'LIMIT', 'OFFSET', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM',
       'CREATE TABLE', 'ALTER TABLE', 'DROP TABLE', 'TRUNCATE', 'WITH',
-      'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'AS', 'ON', 'AND', 'OR',
+      'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'ON', 'AND', 'OR',
       'IN', 'NOT IN', 'EXISTS', 'NOT EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
     ];
     
@@ -50,21 +50,58 @@ function printSql(path, options) {
       );
     }
     
+    // Replace AS keywords and align them
+    // First standardize spacing around AS
+    sql = sql.replace(/\s+AS\s+/gi, ' AS ');
+    
+    // Find the position of the AS keywords to align them
+    const asPositions = [];
+    const asMatches = sql.match(/\S+\s+AS\s+\S+/g) || [];
+    
+    if (asMatches.length > 0) {
+      let maxAsPosition = 0;
+      
+      // Find the furthest position of the AS keyword
+      asMatches.forEach(match => {
+        const asPosition = match.indexOf(' AS ');
+        if (asPosition > maxAsPosition) {
+          maxAsPosition = asPosition;
+        }
+      });
+      
+      // Now pad all AS keywords to align them
+      if (maxAsPosition > 0) {
+        const asRegex = /(\S+)(\s+AS\s+)(\S+)/g;
+        sql = sql.replace(asRegex, (match, before, as, after) => {
+          const padding = ' '.repeat(Math.max(0, maxAsPosition - before.length));
+          return `${before}${padding}${as}${after}`;
+        });
+      }
+    }
+    
     // Add newlines before main SQL clauses
     keywords.forEach(keyword => {
       // Create regex that matches the keyword at word boundaries
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+      // Single space after keywords, not double
       sql = sql.replace(regex, `\n${keywordsCase === 'uppercase' ? keyword.toUpperCase() : 
                                     keywordsCase === 'lowercase' ? keyword.toLowerCase() : 
-                                    keyword} `);
+                                    keyword}`);
     });
     
     // Handle comma position (end or start of line)
     if (commaPosition === 'start') {
-      sql = sql.replace(/,\s*/g, '\n, ');
+      // Line up commas under the first letter of SELECT
+      sql = sql.replace(/,\s*/g, '\n     , ');
     } else {
       sql = sql.replace(/,\s*/g, ',\n');
     }
+    
+    // Handle semicolon - place on its own line
+    sql = sql.replace(/;/g, '\n;');
+    
+    // Special handling for AND/OR to indent them
+    sql = sql.replace(/\n(AND|OR)\b/gi, '\n  $1');
     
     return sql.trim();
   }
