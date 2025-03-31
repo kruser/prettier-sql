@@ -9,6 +9,10 @@ A Prettier plugin for formatting SQL files.
 - Format standalone SQL (.sql) files
 - Configure SQL keyword case (uppercase, lowercase, or preserve)
 - Configure comma position (end of line or start of line)
+- Align leading commas under the 'T' of SELECT
+- Align column aliases for better readability
+- Place semicolons on their own line
+- Indent AND/OR clauses under their parent condition
 
 ## Installation
 
@@ -56,10 +60,52 @@ SELECT id, name FROM users WHERE age > 18 ORDER BY name ASC
 
 After:
 ```sql
-SELECT id, name 
-FROM users 
-WHERE age > 18 
+SELECT id
+     , name AS username
+     , email AS user_email
+FROM users
+WHERE age > 18
+  AND active = true
 ORDER BY name ASC
+;
+```
+
+### Complex Example
+
+Before:
+```sql
+WITH active_users as (select id, name from users where status = 'active'), recent_posts as (select * from posts where created_at > '2023-01-01') SELECT au.id, au.name as username, rp.title as post_title, rp.content as post_content, count(*) as total_posts FROM active_users au JOIN recent_posts rp ON au.id = rp.user_id where rp.views > 100 AND rp.comments_count > 5 OR rp.likes > 50 GROUP BY au.id, au.name, rp.title, rp.content ORDER BY total_posts DESC LIMIT 10;
+```
+
+After:
+```sql
+WITH active_users AS (
+SELECT id
+     , name 
+FROM users 
+WHERE status = 'active')
+     , recent_posts AS (
+SELECT * 
+FROM posts 
+WHERE created_at > '2023-01-01') 
+SELECT au.id
+     , au.name      AS username
+     , rp.title     AS post_title
+     , rp.content   AS post_content
+     , count(*)     AS total_posts 
+FROM active_users au 
+JOIN recent_posts rp 
+ON au.id = rp.user_id 
+WHERE rp.views > 100 
+  AND rp.comments_count > 5 
+  OR rp.likes > 50 
+GROUP BY au.id
+     , au.name
+     , rp.title
+     , rp.content 
+ORDER BY total_posts DESC 
+LIMIT 10
+;
 ```
 
 ## Roadmap
