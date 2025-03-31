@@ -1,8 +1,8 @@
 SELECT u.id
-     , u.name    AS user_name
-     , u.email   AS user_email
-     , p.title   AS post_title
-     , p.content AS post_content 
+     , u.name
+     , u.email
+     , p.title
+     , p.content 
 FROM users u 
 JOIN posts p 
 ON u.id = p.user_id 
