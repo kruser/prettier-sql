@@ -1,0 +1,8 @@
+{
+  "plugins": ["./src/index.js"],
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": true,
+  "sqlKeywordsCase": "uppercase",
+  "sqlCommaPosition": "end"
+}

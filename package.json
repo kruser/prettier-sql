@@ -1,0 +1,50 @@
+{
+  "name": "prettier-sql",
+  "version": "0.1.0",
+  "description": "A Prettier plugin for formatting SQL files",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "jest",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "example:sql": "prettier --write \"examples/example.sql\" --parser sql",
+    "example:js": "prettier --write \"examples/example.js\" --parser babel",
+    "example:py": "prettier --write \"examples/example.py\" --parser python",
+    "examples": "npm run example:sql && npm run example:js && npm run example:py",
+    "dev": "nodemon --watch src --ext js --exec \"npm run examples\"",
+    "prepublishOnly": "npm test && npm run format"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kruser/prettier-sql.git"
+  },
+  "keywords": [
+    "prettier",
+    "plugin",
+    "sql",
+    "formatter",
+    "code-formatter"
+  ],
+  "files": [
+    "src/**/*.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kruser/prettier-sql/issues"
+  },
+  "homepage": "https://github.com/kruser/prettier-sql#readme",
+  "peerDependencies": {
+    "prettier": "^2.0.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "prettier": "^3.0.0"
+  }
+}
