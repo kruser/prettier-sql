@@ -127,21 +127,44 @@ function printSql(path, options) {
     }
     sql = lines.join('\n');
 
+    // Get GROUP BY option
+    const groupByOneLine = options.sqlGroupBySingleLine || false;
+
     // Handle comma position (end or start of line)
     if (commaPosition === 'start') {
-      // Line up commas under the first letter of SELECT
+      // First, apply comma formatting to the whole SQL string
       sql = sql.replace(/,\s*/g, '\n     , ');
       
-      // Adjust commas in GROUP BY sections
-      sql = sql.replace(/\n(GROUP BY.*?)(?=\n[A-Z]|$)/gs, (match) => {
-        return match.replace(/\n\s+,\s+/g, '\n       , ');
-      });
+      // Then, adjust commas in GROUP BY sections if they should be multi-line
+      if (!groupByOneLine) {
+        sql = sql.replace(/\n(GROUP BY.*?)(?=\n[A-Z]|$)/gs, (match) => {
+          return match.replace(/\n\s+,\s+/g, '\n       , ');
+        });
+      } else {
+        // For single-line GROUP BY statements, put commas back without newlines
+        sql = sql.replace(/\n(GROUP BY)(.*?)(?=\n[A-Z]|$)/gs, (match, groupBy, columns) => {
+          // Replace newline + spaces + comma with just a comma and space
+          let fixedColumns = columns.replace(/\n\s+,\s+/g, ', ');
+          return `\n${groupBy}${fixedColumns}`;
+        });
+      }
     } else {
+      // For end commas
       sql = sql.replace(/,\s*/g, ',\n');
+      
+      // Handle single-line GROUP BY
+      if (groupByOneLine) {
+        sql = sql.replace(/\n(GROUP BY)(.*?)(?=\n[A-Z]|$)/gs, (match, groupBy, columns) => {
+          // Replace comma + newline with just a comma and space
+          let fixedColumns = columns.replace(/,\n\s+/g, ', ');
+          return `\n${groupBy}${fixedColumns}`;
+        });
+      }
     }
 
-    // Close parentheses on separate lines
-    sql = sql.replace(/\)(,?)(\s*?)/g, '\n)$1');
+    // Handle parentheses - function calls shouldn't be split
+    // Only format parentheses that aren't part of a function call
+    sql = sql.replace(/\)\s*(?!AS|,|AND|OR|WHERE|FROM|SELECT|GROUP|ORDER|HAVING|ON)(\s*)/g, '\n)$1');
 
     // Handle JOIN ... ON statements - keep ON on same line
     sql = sql.replace(/\n(ON\b)/gi, ' $1');
@@ -204,6 +227,11 @@ module.exports = {
         { value: 'end', description: 'Place commas at the end of lines' },
         { value: 'start', description: 'Place commas at the start of new lines' }
       ]
+    },
+    sqlGroupBySingleLine: {
+      type: 'boolean',
+      default: false,
+      description: 'Keep GROUP BY statements on a single line instead of breaking out each column'
     }
   }
 };

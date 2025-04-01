@@ -15,7 +15,7 @@ A Prettier plugin for formatting SQL files.
 - Indent AND/OR clauses under their parent condition
 - Indent CTE contents with 4 spaces
 - Keep JOIN ... ON clauses on the same line
-- Align commas in GROUP BY clauses with proper indentation
+- Configurable GROUP BY formatting (multi-line or single-line)
 
 ## Installation
 
@@ -35,7 +35,8 @@ Add this to your `.prettierrc` file:
 {
   "plugins": ["prettier-sql"],
   "sqlKeywordsCase": "uppercase",
-  "sqlCommaPosition": "end"
+  "sqlCommaPosition": "end",
+  "sqlGroupBySingleLine": false
 }
 ```
 
@@ -51,6 +52,10 @@ This plugin provides the following SQL-specific configuration options:
 - `sqlCommaPosition`: Controls the position of commas in lists
   - `"end"` (default): Place commas at the end of lines
   - `"start"`: Place commas at the start of new lines
+
+- `sqlGroupBySingleLine`: Controls formatting of GROUP BY clauses
+  - `false` (default): Break GROUP BY columns into separate lines with aligned commas
+  - `true`: Keep all GROUP BY columns on a single line separated by commas
 
 ### SQL Files
 
@@ -70,6 +75,43 @@ FROM users
 WHERE age > 18
   AND active = true
 ORDER BY name ASC
+;
+```
+
+### GROUP BY Examples
+
+#### Multi-line GROUP BY (default)
+
+```sql
+SELECT customer_id
+     , product_name
+     , purchase_amount AS total_spent
+     , purchase_count
+FROM customer_purchases
+WHERE purchase_date > '2023-01-01'
+  AND status = 'complete'
+GROUP BY customer_id
+       , product_name
+       , purchase_date
+       , category_id
+ORDER BY total_spent DESC
+LIMIT 5
+;
+```
+
+#### Single-line GROUP BY (with `sqlGroupBySingleLine: true`)
+
+```sql
+SELECT customer_id
+     , product_name
+     , purchase_amount AS total_spent
+     , purchase_count
+FROM customer_purchases
+WHERE purchase_date > '2023-01-01'
+  AND status = 'complete'
+GROUP BY customer_id, product_name, purchase_date
+ORDER BY total_spent DESC
+LIMIT 5
 ;
 ```
 
