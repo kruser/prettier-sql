@@ -92,17 +92,7 @@ function printSql(path, options) {
     // Simple formatter - replace multiple whitespaces with single space
     sqlToFormat = sqlToFormat.replace(/\s+/g, ' ').trim();
 
-    // Format function names
-    if (functionsCase !== 'preserve') {
-      // Create a regex pattern for functions
-      const functionPattern = sqlFunctions.join('|');
-      const functionRegex = new RegExp(`\\b(${functionPattern})\\b(?=\\s*\\()`, 'gi');
-
-      // Format function names
-      sqlToFormat = sqlToFormat.replace(functionRegex, (match) =>
-        functionsCase === 'uppercase' ? match.toUpperCase() : match.toLowerCase()
-      );
-    }
+    // Function names are formatted when we restore function calls later
 
     // Handle keyword case
     if (keywordsCase !== 'preserve') {
@@ -241,9 +231,22 @@ function printSql(path, options) {
     // Remove extra blank lines
     sqlToFormat = sqlToFormat.replace(/\n\s*\n+/g, '\n');
 
-    // Restore function calls from placeholders
+    // Format function names and restore function calls from placeholders
     for (let i = 0; i < functionCalls.length; i++) {
-      sqlToFormat = sqlToFormat.replace(`__FUNCTION_${i}__`, functionCalls[i]);
+      let formattedFunction = functionCalls[i];
+      
+      // Apply function case formatting
+      if (functionsCase !== 'preserve') {
+        // Format function names
+        sqlFunctions.forEach(func => {
+          const funcRegex = new RegExp(`\\b${func}\\b(?=\\s*\\()`, 'gi');
+          formattedFunction = formattedFunction.replace(funcRegex, match => 
+            functionsCase === 'uppercase' ? match.toUpperCase() : match.toLowerCase()
+          );
+        });
+      }
+      
+      sqlToFormat = sqlToFormat.replace(`__FUNCTION_${i}__`, formattedFunction);
     }
 
     // Restore multiline comments from placeholders
