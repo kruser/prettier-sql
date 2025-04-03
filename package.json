@@ -10,10 +10,10 @@
   "scripts": {
     "test": "jest",
     "format": "prettier --write \"**/*.{js,json,md}\"",
-    "example:sql": "prettier --write \"examples/example.sql\" --parser sql",
-    "example:js": "prettier --write \"examples/example.js\" --parser babel",
-    "example:py": "prettier --write \"examples/example.py\" --parser python",
-    "examples": "npm run example:sql && npm run example:js && npm run example:py",
+    "examples:sql": "prettier --write \"examples/*.sql\" --parser sql",
+    "example:js": "prettier --write \"examples/*.js\" --parser babel 2>/dev/null || true",
+    "example:py": "prettier --write \"examples/*.py\" --parser python 2>/dev/null || true",
+    "examples": "npm run examples:sql && npm run example:js && npm run example:py",
     "dev": "nodemon --watch src --ext js --exec \"npm run examples\"",
     "prepublishOnly": "npm test && npm run format"
   },
