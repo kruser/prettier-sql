@@ -5,7 +5,7 @@ SELECT customer_id
 FROM customer_purchases
 WHERE purchase_date > '2023-01-01'
   AND status = 'complete'
-GROUP BY customer_id, product_name, purchase_date
+GROUP BY customer_id , product_name , purchase_date
 ORDER BY total_spent DESC
 LIMIT 5
 ;

@@ -1,11 +1,11 @@
 -- Example showing function names in various cases
 
-SELECT sum(amount) AS total
-     , count(*) AS count
-     , avg(price) AS average
-     , max(date) AS latest_date
-     , min(date) AS earliest_date
-     , upper(category) AS category_upper
+SELECT SUM(amount) AS total
+     , COUNT(*) AS count
+     , AVG(price) AS average
+     , MAX(date) AS latest_date
+     , MIN(date) AS earliest_date
+     , UPPER(category) AS category_upper
 FROM sales
-WHERE lower(status) = 'completed'
+WHERE LOWER(status) = 'completed'
 ;

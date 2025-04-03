@@ -2,7 +2,7 @@ SELECT customer_id
      , SUM(amount) AS total_amount
      , AVG(amount) AS avg_amount
      , COUNT(*) AS transaction_count
-     , min(date) AS first_date
+     , MIN(date) AS first_date
      , MAX(date) AS last_date
      , COALESCE(name , 'Unknown') AS customer
      , UPPER(category) AS category

@@ -1,10 +1,10 @@
+-- This is an inline comment for id u.name ,
+ -- User name comment u.email -- User email comment
+-- This is a trailing comment
 -- This is a comment at the beginning
 
 SELECT u.id
-     , -- This is an inline comment for id u.name
-     , -- User name comment u.email -- User email comment
-FROM users u /* This is a
--- This is a trailing comment
+     , FROM users u /* This is a
    multi-line
    comment */
 WHERE u.active = true -- Active users only
