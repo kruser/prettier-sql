@@ -167,6 +167,40 @@ function printSql(path, options) {
     sqlToFormat = sqlToFormat.replace(/\s*\)\s*,\s*(\w+\s+AS)/gi, '\n)\n, $1');
     sqlToFormat = sqlToFormat.replace(/\s*\)\s*(\nSELECT)/gi, '\n)\n$1');
     
+    // Fix CTE comma alignment
+    // First, find all lines that start with a comma followed by a CTE name
+    const ctePattern = /\n,\s*(\w+\s+AS\s*\()/gi;
+    
+    // Replace them with a standard format first
+    sqlToFormat = sqlToFormat.replace(ctePattern, '\n, $1');
+    
+    // Now we need to align the commas specifically
+    let withPosition = -1;
+    let cteLines = sqlToFormat.split('\n');
+    
+    // Find the WITH keyword position to use for alignment
+    for (let i = 0; i < cteLines.length; i++) {
+      if (cteLines[i].trim().startsWith('WITH')) {
+        withPosition = cteLines[i].indexOf('WITH');
+        break;
+      }
+    }
+    
+    // If we found the WITH position, align all CTE commas with proper indentation
+    if (withPosition >= 0) {
+      for (let i = 0; i < cteLines.length; i++) {
+        // Look for lines starting with comma that are part of CTE definition
+        if (cteLines[i].trim().startsWith(',') && 
+            (i+1 < cteLines.length && cteLines[i].indexOf(' AS (') > 0)) {
+          // Use same indentation as the commas in SELECT statements (add 6 spaces from the indentation)
+          const indent = ' '.repeat(withPosition);
+          cteLines[i] = indent + cteLines[i].trim();
+        }
+      }
+    }
+    
+    sqlToFormat = cteLines.join('\n');
+    
     // Process the SQL by lines to handle indentation
     const formattedLines = sqlToFormat.split('\n');
     let inCTE = false;
@@ -204,19 +238,56 @@ function printSql(path, options) {
 
     // Handle comma position (end or start of line)
     if (commaPosition === 'start') {
-      // First, apply comma formatting to the whole SQL string
+      // First move commas to beginning of lines with proper spacing
       sqlToFormat = sqlToFormat.replace(/,\s*/g, '\n     , ');
       
-      // Then, adjust commas in GROUP BY sections if they should be multi-line
+      // Process SQL line by line to properly align commas with SELECT statements
+      const lines = sqlToFormat.split('\n');
+      
+      // Find all SELECT statements for reference indentation
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('SELECT')) {
+          // Get the position of 'S' in SELECT
+          const selectPos = lines[i].indexOf('SELECT');
+          
+          // The comma should align with the 'T' in SELECT, which is selectPos + 6
+          const commaIndent = ' '.repeat(selectPos + 6);
+          
+          // Find the field list lines after this SELECT and adjust commas
+          let j = i + 1;
+          while (j < lines.length && 
+                 !lines[j].trim().match(/^\s*(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|JOIN|UNION|EXCEPT|INTERSECT)\b/i)) {
+            // If this line starts with a comma, adjust its alignment
+            if (lines[j].trimStart().startsWith(',')) {
+              // Extract any content after the comma
+              const afterComma = lines[j].trimStart().substring(1).trimStart();
+              // Replace with properly aligned comma
+              lines[j] = commaIndent + ', ' + afterComma;
+            }
+            j++;
+          }
+        }
+      }
+      
+      sqlToFormat = lines.join('\n');
+      
+      // Handle GROUP BY clauses
       if (!groupByOneLine) {
-        sqlToFormat = sqlToFormat.replace(/\n(GROUP BY.*?)(?=\n[A-Z]|$)/gs, (match) => {
-          return match.replace(/\n\s+,\s+/g, '\n       , ');
+        // For multi-line GROUP BY, ensure proper comma alignment
+        sqlToFormat = sqlToFormat.replace(/\n(GROUP BY)(.*?)(?=\n[A-Z]|$)/gs, (match, groupBy, columns) => {
+          const groupByLine = `\n${groupBy}`;
+          // Get indent for GROUP BY line
+          const indent = ' '.repeat(6);  // align with T of GROUP
+          
+          // Replace commas with properly aligned ones
+          let formattedColumns = columns.replace(/\n\s*,\s*/g, `\n${indent}, `);
+          return groupByLine + formattedColumns;
         });
       } else {
-        // For single-line GROUP BY statements, put commas back without newlines
+        // For single-line GROUP BY, put commas inline
         sqlToFormat = sqlToFormat.replace(/\n(GROUP BY)(.*?)(?=\n[A-Z]|$)/gs, (match, groupBy, columns) => {
-          // Replace newline + spaces + comma with just a comma and space
-          let fixedColumns = columns.replace(/\n\s+,\s+/g, ', ');
+          let fixedColumns = columns.replace(/\n\s*,\s*/g, ', ');
           return `\n${groupBy}${fixedColumns}`;
         });
       }
@@ -224,10 +295,9 @@ function printSql(path, options) {
       // For end commas
       sqlToFormat = sqlToFormat.replace(/,\s*/g, ',\n');
       
-      // Handle single-line GROUP BY
+      // Handle single-line GROUP BY with end commas
       if (groupByOneLine) {
         sqlToFormat = sqlToFormat.replace(/\n(GROUP BY)(.*?)(?=\n[A-Z]|$)/gs, (match, groupBy, columns) => {
-          // Replace comma + newline with just a comma and space
           let fixedColumns = columns.replace(/,\n\s+/g, ', ');
           return `\n${groupBy}${fixedColumns}`;
         });
