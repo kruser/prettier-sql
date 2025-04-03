@@ -33,7 +33,7 @@
     "LICENSE",
     "README.md"
   ],
-  "author": "",
+  "author": "Ryan Kruse",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kruser/prettier-sql/issues"

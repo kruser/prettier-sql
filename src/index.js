@@ -26,7 +26,7 @@ function printSql(path, options) {
 
     // Define SQL keywords for formatting
     let keywords = [
-      'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 
+      'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN',
       'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'FULL JOIN',
       'LIMIT', 'OFFSET', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM',
       'CREATE TABLE', 'ALTER TABLE', 'DROP TABLE', 'TRUNCATE', 'WITH',
@@ -50,7 +50,7 @@ function printSql(path, options) {
     const lines = sql.split('\n');
     const commentOnlyLines = [];
     const sqlWithoutCommentOnlyLines = [];
-    
+
     // First pass: Identify comment-only lines and remove them temporarily
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -61,10 +61,10 @@ function printSql(path, options) {
         sqlWithoutCommentOnlyLines.push(lines[i]);
       }
     }
-    
+
     // Join the remaining lines back together for processing
     let sqlToFormat = sqlWithoutCommentOnlyLines.join('\n');
-    
+
     // Extract inline comments within the remaining SQL and replace with placeholders
     const inlineComments = [];
     sqlToFormat = sqlToFormat.replace(/(--[^\n]*)/g, (match) => {
@@ -72,7 +72,7 @@ function printSql(path, options) {
       inlineComments.push(match);
       return placeholder;
     });
-    
+
     // Extract multi-line comments and replace with placeholders
     const multilineComments = [];
     sqlToFormat = sqlToFormat.replace(/\/\*[\s\S]*?\*\//g, (match) => {
@@ -80,7 +80,7 @@ function printSql(path, options) {
       multilineComments.push(match);
       return placeholder;
     });
-    
+
     // Extract function calls and replace with placeholders
     const functionCalls = [];
     sqlToFormat = sqlToFormat.replace(/\b(?:COUNT|SUM|AVG|MIN|MAX|COALESCE|NULLIF|CAST|CONVERT|SUBSTR|SUBSTRING|TRIM|LTRIM|RTRIM|LENGTH|CHAR_LENGTH|ROUND|NOW|CURRENT_TIMESTAMP|EXTRACT|DATEADD|DATEDIFF|TO_CHAR|TO_DATE|UPPER|LOWER|INITCAP|CONCAT|REPLACE|REGEXP_REPLACE|LAG|LEAD|FIRST_VALUE|LAST_VALUE|ROW_NUMBER|RANK|DENSE_RANK|NTILE|LISTAGG|GROUP_CONCAT)\s*\([^()]*(?:\([^()]*\)[^()]*)*\)/gi, (match) => {
@@ -88,7 +88,7 @@ function printSql(path, options) {
       functionCalls.push(match);
       return placeholder;
     });
-    
+
     // Simple formatter - replace multiple whitespaces with single space
     sqlToFormat = sqlToFormat.replace(/\s+/g, ' ').trim();
 
@@ -97,9 +97,9 @@ function printSql(path, options) {
       // Create a regex pattern for functions
       const functionPattern = sqlFunctions.join('|');
       const functionRegex = new RegExp(`\\b(${functionPattern})\\b(?=\\s*\\()`, 'gi');
-      
+
       // Format function names
-      sqlToFormat = sqlToFormat.replace(functionRegex, (match) => 
+      sqlToFormat = sqlToFormat.replace(functionRegex, (match) =>
         functionsCase === 'uppercase' ? match.toUpperCase() : match.toLowerCase()
       );
     }
@@ -107,14 +107,14 @@ function printSql(path, options) {
     // Handle keyword case
     if (keywordsCase !== 'preserve') {
       // Create a regex pattern for all keywords with word boundaries
-      const keywordPattern = keywords.map(k => 
+      const keywordPattern = keywords.map(k =>
         // Escape any regex special characters in the keyword
         k.replace(/[-\/\^\$*+?.()|[\]{}]/g, '\\$&')
       ).join('|');
       const keywordRegex = new RegExp(`\\b(${keywordPattern})\\b`, 'gi');
-      
+
       // Replace keywords with proper case
-      sqlToFormat = sqlToFormat.replace(keywordRegex, match => 
+      sqlToFormat = sqlToFormat.replace(keywordRegex, match =>
         keywordsCase === 'uppercase' ? match.toUpperCase() : match.toLowerCase()
       );
     }
@@ -122,7 +122,7 @@ function printSql(path, options) {
     // Replace AS keywords and align them
     // First standardize spacing around AS
     sqlToFormat = sqlToFormat.replace(/\s+AS\s+/gi, ' AS ');
-    
+
     // Find the position of the AS keywords to align them
     const asMatches = [];
     let match;
@@ -130,10 +130,10 @@ function printSql(path, options) {
     while ((match = asRegex.exec(sqlToFormat)) !== null) {
       asMatches.push(match);
     }
-    
+
     if (asMatches.length > 0) {
       let maxAsPosition = 0;
-      
+
       // Find the furthest position of the AS keyword
       asMatches.forEach(match => {
         const asPosition = match[0].indexOf(' AS ');
@@ -141,7 +141,7 @@ function printSql(path, options) {
           maxAsPosition = asPosition;
         }
       });
-      
+
       // Now pad all AS keywords to align them
       if (maxAsPosition > 0) {
         const asAlignRegex = /(\S+)(\s+AS\s+)(\S+)/g;
@@ -157,8 +157,8 @@ function printSql(path, options) {
       // Create regex that matches the keyword at word boundaries
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
       // Single space after keywords, not double
-      const formattedKeyword = keywordsCase === 'uppercase' ? keyword.toUpperCase() : 
-                              keywordsCase === 'lowercase' ? keyword.toLowerCase() : 
+      const formattedKeyword = keywordsCase === 'uppercase' ? keyword.toUpperCase() :
+                              keywordsCase === 'lowercase' ? keyword.toLowerCase() :
                               keyword;
       sqlToFormat = sqlToFormat.replace(regex, `\n${formattedKeyword}`);
     });
@@ -201,7 +201,7 @@ function printSql(path, options) {
     if (commaPosition === 'start') {
       // First, apply comma formatting to the whole SQL string
       sqlToFormat = sqlToFormat.replace(/,\s*/g, '\n     , ');
-      
+
       // Then, adjust commas in GROUP BY sections if they should be multi-line
       if (!groupByOneLine) {
         sqlToFormat = sqlToFormat.replace(/\n(GROUP BY.*?)(?=\n[A-Z]|$)/gs, (match) => {
@@ -218,7 +218,7 @@ function printSql(path, options) {
     } else {
       // For end commas
       sqlToFormat = sqlToFormat.replace(/,\s*/g, ',\n');
-      
+
       // Handle single-line GROUP BY
       if (groupByOneLine) {
         sqlToFormat = sqlToFormat.replace(/\n(GROUP BY)(.*?)(?=\n[A-Z]|$)/gs, (match, groupBy, columns) => {
@@ -245,17 +245,17 @@ function printSql(path, options) {
     for (let i = 0; i < functionCalls.length; i++) {
       sqlToFormat = sqlToFormat.replace(`__FUNCTION_${i}__`, functionCalls[i]);
     }
-    
+
     // Restore multiline comments from placeholders
     for (let i = 0; i < multilineComments.length; i++) {
       sqlToFormat = sqlToFormat.replace(`__MULTICOMMENT_${i}__`, multilineComments[i]);
     }
-    
+
     // Restore inline comments from placeholders - ensuring there's a space before each one
     for (let i = 0; i < inlineComments.length; i++) {
       const placeholder = `__COMMENT_${i}__`;
       const pos = sqlToFormat.indexOf(placeholder);
-      
+
       if (pos !== -1) {
         const charBefore = pos > 0 ? sqlToFormat.charAt(pos - 1) : '';
         if (charBefore !== ' ') {
@@ -265,7 +265,7 @@ function printSql(path, options) {
         }
       }
     }
-    
+
     // Reinsert comment-only lines at their appropriate positions
     const finalLines = sqlToFormat.split('\n');
     for (const { index, content } of commentOnlyLines) {
@@ -276,13 +276,13 @@ function printSql(path, options) {
         finalLines.push(content);
       }
     }
-    
+
     // Remove trailing whitespace from each line
     const finalSql = finalLines.map(line => line.trimRight()).join('\n');
 
     return finalSql.trim();
   }
-  
+
   return '';
 }
 
@@ -298,7 +298,7 @@ module.exports = {
       extensions: ['.sql']
     }
   },
-  
+
   // Language printers
   printers: {
     sql: {
@@ -329,7 +329,7 @@ module.exports = {
     },
     sqlGroupBySingleLine: {
       type: 'boolean',
-      default: false,
+      default: true,
       description: 'Keep GROUP BY statements on a single line instead of breaking out each column'
     },
     sqlFunctionsCase: {

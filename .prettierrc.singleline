@@ -5,6 +5,5 @@
   "singleQuote": true,
   "sqlKeywordsCase": "uppercase",
   "sqlCommaPosition": "start",
-  "sqlGroupBySingleLine": true,
-  "sqlFunctionsCase": "uppercase"
+  "sqlGroupBySingleLine": true
 }
